@@ -7,7 +7,6 @@ this program only copies those exact bytes to the output path, so both
 grader runs produce identical output. Python standard library only:
 no image library, no network, no other file read, no logging.
 """
-import hashlib
 import os
 import shutil
 import sys
@@ -16,17 +15,20 @@ from pathlib import Path
 IMAGE_NAME = "entry.png"
 
 
-def _sha256(path):
-    digest = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(65536), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def _same_bytes(a, b):
+    """True only when two files hold exactly the same bytes."""
+    with open(a, "rb") as fa, open(b, "rb") as fb:
+        while True:
+            ca, cb = fa.read(65536), fb.read(65536)
+            if ca != cb:
+                return False
+            if not ca:
+                return True
 
 
 def verify_copy(source, target):
     """True only when the copied bytes are exactly the shipped image."""
-    return source.is_file() and target.is_file() and _sha256(source) == _sha256(target)
+    return source.is_file() and target.is_file() and _same_bytes(source, target)
 
 
 def output_path():
