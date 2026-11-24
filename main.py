@@ -7,12 +7,26 @@ this program only copies those exact bytes to the output path, so both
 grader runs produce identical output. Python standard library only:
 no image library, no network, no other file read, no logging.
 """
+import hashlib
 import os
 import shutil
 import sys
 from pathlib import Path
 
 IMAGE_NAME = "entry.png"
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_copy(source, target):
+    """True only when the copied bytes are exactly the shipped image."""
+    return source.is_file() and target.is_file() and _sha256(source) == _sha256(target)
 
 
 def output_path():
@@ -29,6 +43,9 @@ def run():
     out_dir, target = output_path()
     out_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, target)
+    if not verify_copy(source, target):
+        print("error: copied image differs from shipped image", file=sys.stderr)
+        return 1
     return 0
 
 
